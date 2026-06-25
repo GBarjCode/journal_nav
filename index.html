@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b1120">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Journal de nav — Bavaria 37</title>
+<style>
+:root{
+  --bg:#0b1120;--s1:#111d33;--s2:#172744;--bd:#1e3a5f;
+  --tx:#e2eaf2;--dim:#7a93ab;--ac:#3b82f6;--ac2:#06b6d4;
+  --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+body{min-height:100vh;padding-bottom:90px}
+
+.hdr{background:linear-gradient(135deg,var(--s1),var(--s2));border-bottom:1px solid var(--bd);padding:14px 16px;position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:17px;font-weight:700;color:#fff}
+.hdr .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.status{font-size:10px;padding:4px 8px;border-radius:20px;font-weight:700}
+.status.on{background:rgba(16,185,129,.15);color:var(--ok)}
+.status.off{background:rgba(245,158,11,.15);color:var(--warn)}
+
+.wrap{padding:14px;max-width:600px;margin:0 auto}
+
+/* tabs */
+.tabs{display:flex;background:var(--s1);border-bottom:1px solid var(--bd);position:sticky;top:53px;z-index:9}
+.tab{flex:1;padding:13px;text-align:center;font-size:14px;font-weight:700;color:var(--dim);cursor:pointer;border-bottom:3px solid transparent}
+.tab.on{color:var(--ac);border-bottom-color:var(--ac);background:var(--s2)}
+.tc{display:none}.tc.on{display:block}
+
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+.lbl{font-size:13px;font-weight:700;color:var(--ac2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+
+.num-row{display:flex;gap:10px}
+.num-field{flex:1}
+.num-field label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px;font-weight:600}
+.num-field input{
+  width:100%;padding:14px 8px;background:var(--bg);border:2px solid var(--bd);
+  border-radius:10px;color:#fff;font-size:24px;font-weight:700;text-align:center;
+  outline:none;font-variant-numeric:tabular-nums;
+}
+.num-field input:focus{border-color:var(--ac)}
+.num-field .unit{font-size:11px;color:var(--dim);text-align:center;margin-top:3px}
+
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{
+  flex:1 1 auto;min-width:calc(50% - 4px);padding:16px 10px;border:2px solid var(--bd);
+  background:var(--s2);border-radius:12px;color:var(--tx);font-size:16px;font-weight:600;
+  cursor:pointer;transition:.1s;text-align:center;
+}
+.opt.sel{background:var(--ac);border-color:var(--ac);color:#fff}
+.opts.two .opt{min-width:calc(50% - 4px)}
+.opts.three .opt{min-width:calc(33.33% - 6px)}
+
+.valid-btn{
+  position:fixed;left:14px;right:14px;bottom:14px;max-width:572px;margin:0 auto;
+  padding:20px;border:none;border-radius:14px;background:var(--ok);
+  color:#fff;font-size:20px;font-weight:800;cursor:pointer;letter-spacing:.5px;
+  box-shadow:0 4px 20px rgba(16,185,129,.35);z-index:20;
+}
+.valid-btn:active{transform:scale(.98)}
+
+.counter{text-align:center;font-size:13px;color:var(--dim);margin-top:10px}
+.counter b{color:var(--ac2);font-size:16px}
+
+/* history */
+.entry{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.entry .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.entry .dt{font-size:13px;font-weight:700;color:var(--ac2)}
+.entry .del{background:rgba(239,68,68,.15);color:var(--danger);border:none;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+.entry .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px}
+.entry .g{background:var(--bg);border-radius:6px;padding:6px 8px}
+.entry .g .k{color:var(--dim);font-size:10px;text-transform:uppercase}
+.entry .g .v{color:var(--tx);font-weight:600;font-size:13px}
+.empty{text-align:center;color:var(--dim);padding:40px 20px;font-size:14px}
+
+.export-row{display:flex;gap:10px;margin-bottom:14px}
+.export-btn{flex:1;padding:16px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.exp-xlsx{background:var(--ac);color:#fff}
+.exp-csv{background:var(--s2);color:var(--tx);border:1px solid var(--bd)}
+.danger-btn{width:100%;padding:14px;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px}
+
+.toast{
+  position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(100px);
+  background:var(--ok);color:#fff;padding:14px 24px;border-radius:30px;font-weight:700;
+  font-size:15px;opacity:0;transition:.3s;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.4);max-width:90%;text-align:center;
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:var(--danger)}
+.toast.warn{background:var(--warn)}
+
+.install-hint{background:rgba(59,130,246,.1);border:1px solid var(--ac);border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px;color:var(--tx)}
+.install-hint b{color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div>
+    <h1>Journal de navigation</h1>
+    <div class="sub">Bavaria 37 Cruiser</div>
+  </div>
+  <div class="status off" id="netStatus">•••</div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="switchTab(0)">Saisie</div>
+  <div class="tab" onclick="switchTab(1)">Historique <span id="tabCount"></span></div>
+</div>
+
+<!-- SAISIE -->
+<div id="tab0" class="tc on">
+  <div class="wrap">
+    <div class="card">
+      <div class="lbl">Mesures</div>
+      <div class="num-row">
+        <div class="num-field">
+          <label>Vitesse</label>
+          <input id="vitesse" type="number" inputmode="decimal" step="0.1" placeholder="—">
+          <div class="unit">nœuds</div>
+        </div>
+        <div class="num-field">
+          <label>AWS</label>
+          <input id="aws" type="number" inputmode="decimal" step="0.5" placeholder="—">
+          <div class="unit">nœuds</div>
+        </div>
+        <div class="num-field">
+          <label>AWA</label>
+          <input id="awa" type="number" inputmode="numeric" step="5" placeholder="—">
+          <div class="unit">degrés</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">Voile d'avant</div>
+      <div class="opts three" id="voileAV"></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">Grand-voile</div>
+      <div class="opts" id="gv"></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">Amure</div>
+      <div class="opts two" id="amure"></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">État de la mer</div>
+      <div class="opts" id="mer"></div>
+    </div>
+
+    <div class="counter"><b id="count">0</b> saisie(s) enregistrée(s)</div>
+  </div>
+  <button class="valid-btn" onclick="valider()">VALIDER</button>
+</div>
+
+<!-- HISTORIQUE -->
+<div id="tab1" class="tc">
+  <div class="wrap">
+    <div class="export-row">
+      <button class="export-btn exp-xlsx" onclick="exportXLSX()">⬇ Export Excel</button>
+      <button class="export-btn exp-csv" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+    <div id="historyList"></div>
+    <button class="danger-btn" id="clearBtn" onclick="clearAll()" style="display:none">Tout effacer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const OPTS={
+  voileAV:['génois','trinquette','tourmentin','génois tangonné','spi'],
+  gv:['haute','1 ris','2 ris','3 ris'],
+  amure:['tribord','bâbord'],
+  mer:['plate','belle <0.5','peu agitée <1.5','agitée <2.5','forte <4','croisée, hachée']
+};
+const sel={voileAV:null,gv:null,amure:null,mer:null};
+
+// ============================================================
+// ROBUST STORAGE — IndexedDB with localStorage fallback
+// ============================================================
+const DB_NAME='b37journal', STORE='entries', LS_KEY='b37journal_fallback';
+let db=null, useFallback=false;
+
+function openDB(){
+  return new Promise((resolve)=>{
+    if(!('indexedDB' in window)){useFallback=true;return resolve()}
+    let req;
+    try{ req=indexedDB.open(DB_NAME,1); }
+    catch(e){ useFallback=true; return resolve(); }
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        d.createObjectStore(STORE,{keyPath:'ts'});
+      }
+    };
+    req.onsuccess=e=>{db=e.target.result;resolve()};
+    req.onerror=()=>{useFallback=true;resolve()};
+    // Safari private mode can hang — timeout safety
+    setTimeout(()=>{if(!db&&!useFallback){useFallback=true;resolve()}},1500);
+  });
+}
+
+function dbAdd(row){
+  return new Promise((resolve,reject)=>{
+    if(useFallback){
+      const all=lsGetAll(); all.push(row); lsSetAll(all); return resolve();
+    }
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(row);
+    tx.oncomplete=()=>{ lsSetAll(null,true); resolve(); }; // mirror backup
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+function dbGetAll(){
+  return new Promise((resolve)=>{
+    if(useFallback){return resolve(lsGetAll())}
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>a.ts-b.ts));
+    req.onerror=()=>resolve(lsGetAll());
+  });
+}
+function dbDelete(ts){
+  return new Promise((resolve)=>{
+    if(useFallback){
+      let all=lsGetAll().filter(r=>r.ts!==ts); lsSetAll(all); return resolve();
+    }
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(ts);
+    tx.oncomplete=resolve; tx.onerror=resolve;
+  });
+}
+function dbClear(){
+  return new Promise((resolve)=>{
+    if(useFallback){lsSetAll([]);return resolve()}
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete=()=>{lsSetAll([]);resolve()}; tx.onerror=resolve;
+  });
+}
+
+// localStorage mirror (backup + fallback)
+function lsGetAll(){
+  try{const r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):[]}catch(e){return []}
+}
+function lsSetAll(data,mirrorFromDB){
+  try{
+    if(mirrorFromDB){ // mirror current DB content as backup
+      dbGetAllRaw().then(all=>{try{localStorage.setItem(LS_KEY,JSON.stringify(all))}catch(e){}});
+      return;
+    }
+    localStorage.setItem(LS_KEY,JSON.stringify(data||[]));
+  }catch(e){}
+}
+function dbGetAllRaw(){
+  return new Promise(res=>{
+    if(useFallback)return res(lsGetAll());
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>res(req.result||[]); req.onerror=()=>res([]);
+  });
+}
+
+// ============================================================
+// UI
+// ============================================================
+function buildOpts(){
+  for(const key in OPTS){
+    document.getElementById(key).innerHTML=OPTS[key].map((o,i)=>
+      `<button class="opt" data-k="${key}" data-v="${i}" onclick="pick('${key}',${i})">${o}</button>`
+    ).join('');
+  }
+}
+function pick(key,i){
+  sel[key]= sel[key]===i ? null : i; // tap again to deselect
+  document.querySelectorAll(`[data-k="${key}"]`).forEach(b=>{
+    b.classList.toggle('sel',+b.dataset.v===sel[key]);
+  });
+}
+
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  document.querySelectorAll('.tc').forEach((t,j)=>t.classList.toggle('on',j===i));
+  if(i===1)renderHistory();
+}
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',2000);
+}
+
+// ============================================================
+// SAVE
+// ============================================================
+async function valider(){
+  const vitesse=document.getElementById('vitesse').value.trim();
+  const aws=document.getElementById('aws').value.trim();
+  const awa=document.getElementById('awa').value.trim();
+
+  if(vitesse===''&&aws===''&&awa===''&&sel.voileAV===null&&sel.gv===null&&sel.amure===null&&sel.mer===null){
+    toast('Aucune donnée à enregistrer','err');return;
+  }
+
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const dateStr=`${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  const row={
+    ts:now.getTime(),
+    datetime:dateStr,
+    vitesse:vitesse===''?'':parseFloat(vitesse),
+    aws:aws===''?'':parseFloat(aws),
+    awa:awa===''?'':parseFloat(awa),
+    voileAV:sel.voileAV!==null?OPTS.voileAV[sel.voileAV]:'',
+    gv:sel.gv!==null?OPTS.gv[sel.gv]:'',
+    amure:sel.amure!==null?OPTS.amure[sel.amure]:'',
+    mer:sel.mer!==null?OPTS.mer[sel.mer]:''
+  };
+
+  try{
+    await dbAdd(row);
+    toast('✓ Enregistré — '+dateStr);
+    // clear only numeric; keep sail config for fast repeat
+    document.getElementById('vitesse').value='';
+    document.getElementById('aws').value='';
+    document.getElementById('awa').value='';
+    await updateCount();
+  }catch(e){
+    toast('Erreur d\'enregistrement','err');
+  }
+}
+
+async function updateCount(){
+  const all=await dbGetAll();
+  document.getElementById('count').textContent=all.length;
+  document.getElementById('tabCount').textContent=all.length?`(${all.length})`:'';
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+async function renderHistory(){
+  const all=(await dbGetAll()).sort((a,b)=>b.ts-a.ts); // newest first
+  const list=document.getElementById('historyList');
+  document.getElementById('clearBtn').style.display=all.length?'block':'none';
+  if(!all.length){
+    list.innerHTML='<div class="empty">Aucune saisie pour le moment.</div>';
+    return;
+  }
+  list.innerHTML=all.map(r=>{
+    const g=(k,v)=>v!==''&&v!==undefined?`<div class="g"><div class="k">${k}</div><div class="v">${v}</div></div>`:'';
+    return `<div class="entry">
+      <div class="top">
+        <div class="dt">${r.datetime}</div>
+        <button class="del" onclick="delEntry(${r.ts})">Supprimer</button>
+      </div>
+      <div class="grid">
+        ${g('Vitesse',r.vitesse!==''?r.vitesse+' nds':'')}
+        ${g('AWS',r.aws!==''?r.aws+' nds':'')}
+        ${g('AWA',r.awa!==''?r.awa+'°':'')}
+        ${g('Voile AV',r.voileAV)}
+        ${g('GV',r.gv)}
+        ${g('Amure',r.amure)}
+        ${g('Mer',r.mer)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function delEntry(ts){
+  if(!confirm('Supprimer cette saisie ?'))return;
+  await dbDelete(ts);
+  await renderHistory();
+  await updateCount();
+  toast('Saisie supprimée','warn');
+}
+
+async function clearAll(){
+  if(!confirm('Effacer TOUTES les saisies ? Cette action est irréversible.'))return;
+  if(!confirm('Confirmer la suppression totale ?'))return;
+  await dbClear();
+  await renderHistory();
+  await updateCount();
+  toast('Historique vidé','warn');
+}
+
+// ============================================================
+// EXPORT — XLSX (pure JS, no library) + CSV
+// ============================================================
+const COLS=[
+  ['datetime','Jour, heure'],
+  ['gv','GV'],
+  ['voileAV','Voile AV'],
+  ['amure','Amure'],
+  ['awa','AWA'],
+  ['aws','AWS'],
+  ['vitesse','Vitesse surface'],
+  ['mer','État de mer']
+];
+
+function xmlEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function colLetter(n){let s='';n++;while(n>0){let r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s}
+
+async function exportXLSX(){
+  const all=(await dbGetAll()).sort((a,b)=>a.ts-b.ts);
+  if(!all.length){toast('Rien à exporter','err');return}
+
+  const rows=[COLS.map(c=>c[1])];
+  all.forEach(r=>rows.push(COLS.map(c=>{const v=r[c[0]];return v===''||v===undefined?'':v})));
+
+  let sheetData='';
+  rows.forEach((row,ri)=>{
+    let cells='';
+    row.forEach((val,ci)=>{
+      const ref=colLetter(ci)+(ri+1);
+      if(typeof val==='number'&&!isNaN(val)){
+        cells+=`<c r="${ref}"><v>${val}</v></c>`;
+      }else if(val===''){
+        cells+=`<c r="${ref}"/>`;
+      }else{
+        cells+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(val)}</t></is></c>`;
+      }
+    });
+    sheetData+=`<row r="${ri+1}">${cells}</row>`;
+  });
+
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="8" width="14" customWidth="1"/></cols><sheetData>${sheetData}</sheetData></worksheet>`;
+
+  const contentTypes=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const workbook=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Mesure" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+
+  const files=[
+    ['[Content_Types].xml',contentTypes],
+    ['_rels/.rels',rels],
+    ['xl/workbook.xml',workbook],
+    ['xl/_rels/workbook.xml.rels',wbRels],
+    ['xl/worksheets/sheet1.xml',sheet]
+  ];
+
+  const blob=zipStore(files);
+  downloadBlob(blob, fname('xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  toast('✓ Fichier Excel généré');
+}
+
+function exportCSV(){
+  dbGetAll().then(rows=>{
+    rows.sort((a,b)=>a.ts-b.ts);
+    if(!rows.length){toast('Rien à exporter','err');return}
+    const esc=v=>{v=(v===''||v===undefined)?'':String(v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+    let csv='\uFEFF'+COLS.map(c=>esc(c[1])).join(';')+'\n';
+    rows.forEach(r=>{csv+=COLS.map(c=>esc(r[c[0]])).join(';')+'\n'});
+    downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}), fname('csv'),'text/csv');
+    toast('✓ Fichier CSV généré');
+  });
+}
+
+function fname(ext){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return `journal_nav_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
+}
+
+function downloadBlob(blob,name,type){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url)},1000);
+}
+
+// ---- Minimal ZIP writer (store method, no compression) with CRC32 ----
+const CRC_TABLE=(()=>{
+  let t=[];
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}
+  return t;
+})();
+function crc32(bytes){
+  let c=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++)c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function strBytes(s){return new TextEncoder().encode(s)}
+
+function zipStore(files){
+  // files: [name, contentString]
+  const enc=files.map(([name,content])=>{
+    const nameB=strBytes(name), dataB=strBytes(content);
+    return {nameB,dataB,crc:crc32(dataB),size:dataB.length};
+  });
+  let parts=[], offset=0, central=[];
+
+  function u16(n){return [n&0xFF,(n>>>8)&0xFF]}
+  function u32(n){return [n&0xFF,(n>>>8)&0xFF,(n>>>16)&0xFF,(n>>>24)&0xFF]}
+
+  enc.forEach(f=>{
+    const local=[].concat(
+      u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(f.crc), u32(f.size), u32(f.size),
+      u16(f.nameB.length), u16(0)
+    );
+    const localHeader=new Uint8Array(local);
+    parts.push(localHeader, f.nameB, f.dataB);
+    const localLen=localHeader.length+f.nameB.length+f.dataB.length;
+
+    const cen=[].concat(
+      u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(f.crc), u32(f.size), u32(f.size),
+      u16(f.nameB.length), u16(0), u16(0), u16(0), u16(0),
+      u32(0), u32(offset)
+    );
+    central.push(new Uint8Array(cen), f.nameB);
+    offset+=localLen;
+  });
+
+  let centralStart=offset;
+  let centralSize=0;
+  central.forEach(p=>centralSize+=p.length);
+
+  const eocd=[].concat(
+    u32(0x06054b50), u16(0), u16(0),
+    u16(enc.length), u16(enc.length),
+    u32(centralSize), u32(centralStart), u16(0)
+  );
+
+  const all=[...parts, ...central, new Uint8Array(eocd)];
+  let total=0; all.forEach(p=>total+=p.length);
+  const out=new Uint8Array(total);
+  let pos=0; all.forEach(p=>{out.set(p,pos);pos+=p.length});
+  return new Blob([out],{type:'application/zip'});
+}
+
+// ============================================================
+// NETWORK STATUS + SW REGISTRATION
+// ============================================================
+function updateNet(){
+  const el=document.getElementById('netStatus');
+  if(navigator.onLine){el.textContent='En ligne';el.className='status on'}
+  else{el.textContent='Hors-ligne';el.className='status off'}
+}
+window.addEventListener('online',updateNet);
+window.addEventListener('offline',updateNet);
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+(async function init(){
+  buildOpts();
+  updateNet();
+  await openDB();
+  await updateCount();
+})();
+</script>
+</body>
+</html>
