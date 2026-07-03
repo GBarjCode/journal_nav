@@ -3,7 +3,7 @@
 // IMPORTANT : incrémenter CACHE_VERSION à chaque modification des fichiers
 // pour forcer la mise à jour sur le téléphone.
 
-const CACHE_VERSION = 'journal-nav-v1';
+const CACHE_VERSION = 'journal-nav-v2';
 const ASSETS = [
   './',
   './index.html',

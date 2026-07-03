@@ -166,6 +166,7 @@ body{min-height:100vh;padding-bottom:90px}
 <!-- HISTORIQUE -->
 <div id="tab1" class="tc">
   <div class="wrap">
+    <button class="export-btn share-od" onclick="shareToOneDrive()" style="width:100%;margin-bottom:10px;background:var(--ok);color:#fff;font-size:16px">📤 Envoyer vers OneDrive</button>
     <div class="export-row">
       <button class="export-btn exp-xlsx" onclick="exportXLSX()">⬇ Export Excel</button>
       <button class="export-btn exp-csv" onclick="exportCSV()">⬇ Export CSV</button>
@@ -465,16 +466,44 @@ async function exportXLSX(){
   toast('✓ Fichier Excel généré');
 }
 
-function exportCSV(){
-  dbGetAll().then(rows=>{
-    rows.sort((a,b)=>a.ts-b.ts);
-    if(!rows.length){toast('Rien à exporter','err');return}
-    const esc=v=>{v=(v===''||v===undefined)?'':String(v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-    let csv='\uFEFF'+COLS.map(c=>esc(c[1])).join(';')+'\n';
-    rows.forEach(r=>{csv+=COLS.map(c=>esc(r[c[0]])).join(';')+'\n'});
-    downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}), fname('csv'),'text/csv');
-    toast('✓ Fichier CSV généré');
-  });
+async function buildCSVBlob(){
+  const rows=(await dbGetAll()).sort((a,b)=>a.ts-b.ts);
+  if(!rows.length)return null;
+  const esc=v=>{v=(v===''||v===undefined)?'':String(v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  let csv='\uFEFF'+COLS.map(c=>esc(c[1])).join(';')+'\n';
+  rows.forEach(r=>{csv+=COLS.map(c=>esc(r[c[0]])).join(';')+'\n'});
+  return new Blob([csv],{type:'text/csv;charset=utf-8'});
+}
+
+async function exportCSV(){
+  const blob=await buildCSVBlob();
+  if(!blob){toast('Rien à exporter','err');return}
+  downloadBlob(blob, fname('csv'),'text/csv');
+  toast('✓ Fichier CSV généré');
+}
+
+// Partage natif Android : envoie le CSV vers OneDrive (ou autre) en 1 geste
+async function shareToOneDrive(){
+  const blob=await buildCSVBlob();
+  if(!blob){toast('Rien à exporter','err');return}
+  const file=new File([blob], fname('csv'), {type:'text/csv'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({
+        files:[file],
+        title:'Journal de navigation',
+        text:'Export du journal de navigation — à enregistrer dans le dossier Bateau'
+      });
+      toast('✓ Envoyé');
+    }catch(e){
+      if(e && e.name==='AbortError'){toast('Envoi annulé','warn');}
+      else{toast('Partage indisponible — CSV téléchargé','warn');exportCSV();}
+    }
+  }else{
+    // Navigateur sans partage de fichiers : repli sur téléchargement
+    toast('Partage non supporté — CSV téléchargé','warn');
+    exportCSV();
+  }
 }
 
 function fname(ext){
